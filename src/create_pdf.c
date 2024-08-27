@@ -990,7 +990,7 @@ int nwipe_get_smart_data( nwipe_context_t* c )
                 y -= 9;
 
                 /* Have we reached the bottom of the page yet */
-                if( y < pica(4.5) )
+                if( y < pica(5.5) )
                 {
                     /* Append an extra page */
                     page = pdf_append_page( pdf );
