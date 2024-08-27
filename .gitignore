@@ -18,9 +18,10 @@ src/**/.dirstamp
 *.o
 src/Makefile
 src/Makefile.in
-src/nwipe
+src/wyoswipe
 stamp-h1
 *.pdf
 settings.json
 *.guess
 config.sub
+
