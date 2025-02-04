@@ -207,6 +207,7 @@ void save_selected_customer( char** customer )
     char field_2[FIELD_LENGTH];
     char field_3[FIELD_LENGTH];
     char field_4[FIELD_LENGTH];
+    char field_5[FIELD_LENGTH];
 
     /* zero the field strings */
     for( idx = 0; idx < FIELD_LENGTH; idx++ )
@@ -217,6 +218,8 @@ void save_selected_customer( char** customer )
         field_3[idx] = 0;
     for( idx = 0; idx < FIELD_LENGTH; idx++ )
         field_4[idx] = 0;
+    for( idx = 0; idx < FIELD_LENGTH; idx++ )
+        field_5[idx] = 0;
 
     /* Extract the field contents from the csv string
      */
@@ -255,6 +258,13 @@ void save_selected_customer( char** customer )
                             {
                                 field_4[field_idx++] = *( *customer + idx );
                             }
+                            else
+                            {
+                                if( field_count == 5 && field_idx < ( FIELD_LENGTH - 1 ) )
+                                {
+                                    field_5[field_idx++] = *( *customer + idx );
+                                }
+                            }
                         }
                     }
                 }
@@ -262,7 +272,7 @@ void save_selected_customer( char** customer )
             }
             if( *( *customer + idx ) == '\"' )
             {
-                /* Makesure the field string is terminated */
+                /* Make sure the field string is terminated */
                 switch( field_count )
                 {
                     case 1:
@@ -277,6 +287,9 @@ void save_selected_customer( char** customer )
                     case 4:
                         field_4[field_idx] = 0;
                         break;
+                    case 5:
+                        field_5[field_idx] = 0;
+                        break;
                 }
 
                 field_count++;
@@ -286,7 +299,7 @@ void save_selected_customer( char** customer )
         idx++;
     }
 
-    /* All 4 fields present? */
+    /* All 5 fields present? */
     if( field_count != NUMBER_OF_FIELDS + 1 )
     {
         nwipe_log( NWIPE_LOG_ERROR,
@@ -300,6 +313,8 @@ void save_selected_customer( char** customer )
     /* -------------------------------------------------------------
      * Write the fields to nwipe's config file /etc/nwipe/nwipe.conf
      */
+
+    // CUSTOMER NAME
     if( ( setting = config_lookup( &nwipe_cfg, "Selected_Customer.Customer_Name" ) ) )
     {
         config_setting_set_string( setting, field_1 );
@@ -309,6 +324,7 @@ void save_selected_customer( char** customer )
         nwipe_log( NWIPE_LOG_ERROR, "Can't find \"Selected Customers.Customer_Name\" in %s", nwipe_config_file );
     }
 
+    // CUSTOMER ADDRESS
     if( ( setting = config_lookup( &nwipe_cfg, "Selected_Customer.Customer_Address" ) ) )
     {
         config_setting_set_string( setting, field_2 );
@@ -318,18 +334,30 @@ void save_selected_customer( char** customer )
         nwipe_log( NWIPE_LOG_ERROR, "Can't find \"Selected Customers.Customer_Address\" in %s", nwipe_config_file );
     }
 
-    if( ( setting = config_lookup( &nwipe_cfg, "Selected_Customer.Contact_Name" ) ) )
+    // CUSTOMER CITY STATE ZIP
+    if( ( setting = config_lookup( &nwipe_cfg, "Selected_Customer.Customer_CityStatePostal" ) ) )
     {
         config_setting_set_string( setting, field_3 );
+    }
+    else
+    {
+        nwipe_log( NWIPE_LOG_ERROR, "Can't find \"Selected Customers.Customer_CityStatePostal\" in %s", nwipe_config_file );
+    }
+
+    // CUSTOMER CONTACT NAME
+    if( ( setting = config_lookup( &nwipe_cfg, "Selected_Customer.Contact_Name" ) ) )
+    {
+        config_setting_set_string( setting, field_4 );
     }
     else
     {
         nwipe_log( NWIPE_LOG_ERROR, "Can't find \"Selected Customers.Contact_Name\" in %s", nwipe_config_file );
     }
 
+    // CUSTOMER CONTACT PHONE
     if( ( setting = config_lookup( &nwipe_cfg, "Selected_Customer.Contact_Phone" ) ) )
     {
-        config_setting_set_string( setting, field_4 );
+        config_setting_set_string( setting, field_5 );
     }
     else
     {

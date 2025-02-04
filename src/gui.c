@@ -4314,7 +4314,7 @@ void nwipe_gui_add_customer( void )
     extern int terminate_signal;
 
     /* Number of entries in the configuration menu. */
-    const int count = 4;
+    const int count = 5;
 
     /* The first tabstop. */
     const int tab1 = 2;
@@ -4383,11 +4383,11 @@ void nwipe_gui_add_customer( void )
             yy = 2;
 
             /* Print the options. */
-            mvwprintw( main_window, yy++, tab1, "  %s : %s", "Add Customer Name         ", customer_name );
-            mvwprintw( main_window, yy++, tab1, "  %s : %s", "Add Customer Address      ", customer_address );
-            mvwprintw( main_window, yy++, tab1, "  %s : %s", "Add Customer City, ST Postal ", customer_citystatepostal);
-            mvwprintw( main_window, yy++, tab1, "  %s : %s", "Add Customer Contact Name ", customer_contact_name );
-            mvwprintw( main_window, yy++, tab1, "  %s : %s", "Add Customer Contact Phone", customer_contact_phone );
+            mvwprintw( main_window, yy++, tab1, "  %s : %s", "Add Customer Name           ", customer_name );
+            mvwprintw( main_window, yy++, tab1, "  %s : %s", "Add Customer Address        ", customer_address );
+            mvwprintw( main_window, yy++, tab1, "  %s : %s", "Add Customer City, ST Postal", customer_citystatepostal);
+            mvwprintw( main_window, yy++, tab1, "  %s : %s", "Add Customer Contact Name   ", customer_contact_name );
+            mvwprintw( main_window, yy++, tab1, "  %s : %s", "Add Customer Contact Phone  ", customer_contact_phone );
             mvwprintw( main_window, yy++, tab1, "                             " );
 
             /* Print the cursor. */
