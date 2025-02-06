@@ -138,7 +138,7 @@ int main( int argc, char** argv )
 
     if( geteuid() != 0 )
     {
-        printf( "nwipe must run with root permissions, which is not the case.\nAborting\n" );
+        printf( "WyoSWipe must run with root permissions, which is not the case.\nAborting\n" );
         exit( 99 );
     }
 
@@ -211,7 +211,7 @@ int main( int argc, char** argv )
         if( nwipe_enumerated == 0 )
         {
             nwipe_log( NWIPE_LOG_INFO,
-                       "Storage devices not found. Nwipe should be run as root or sudo/su, i.e sudo nwipe etc" );
+                       "Storage devices not found. WyoSWipe should be run as root or sudo/su, i.e sudo wyoswipe etc" );
             cleanup();
             return -1;
         }
@@ -229,8 +229,8 @@ int main( int argc, char** argv )
         if( nwipe_enumerated == 0 )
         {
             nwipe_log( NWIPE_LOG_ERROR, "Devices not found. Check you're not excluding drives unnecessarily," );
-            nwipe_log( NWIPE_LOG_ERROR, "and you are running nwipe as sudo or as root." );
-            printf( "Devices not found, check you're not excluding drives unnecessarily \n and you are running nwipe "
+            nwipe_log( NWIPE_LOG_ERROR, "and you are running WyoSWipe as sudo or as root." );
+            printf( "Devices not found, check you're not excluding drives unnecessarily \n and you are running WyoSWipe "
                     "as sudo or as root." );
             cleanup();
             exit( 1 );
@@ -898,7 +898,7 @@ int main( int argc, char** argv )
                 }
 
                 nwipe_log( NWIPE_LOG_FATAL,
-                           "Nwipe exited with errors on device = %s, see log for specific error\n",
+                           "WyoSWipe exited with errors on device = %s, see log for specific error\n",
                            c2[i]->device_name );
                 nwipe_log( NWIPE_LOG_DEBUG,
                            "Status: %s, result=%d, pass_errors=%llu, verify_errors=%llu, fsync_errors=%llu",
@@ -924,11 +924,11 @@ int main( int argc, char** argv )
             if( global_wipe_status == 1 )
             {
                 nwipe_log( NWIPE_LOG_INFO,
-                           "Nwipe was aborted by the user. Check the summary table for the drive status." );
+                           "WyoSWipe was aborted by the user. Check the summary table for the drive status." );
             }
             else
             {
-                nwipe_log( NWIPE_LOG_INFO, "Nwipe was aborted by the user prior to the wipe starting." );
+                nwipe_log( NWIPE_LOG_INFO, "WyoSWipe was aborted by the user prior to the wipe starting." );
             }
         }
         else
@@ -936,11 +936,11 @@ int main( int argc, char** argv )
             if( fatal_errors_flag == 1 || non_fatal_errors_flag == 1 )
             {
                 nwipe_log( NWIPE_LOG_INFO,
-                           "Nwipe exited with errors, check the log & summary table for individual drive status." );
+                           "WyoSWipe exited with errors, check the log & summary table for individual drive status." );
             }
             else
             {
-                nwipe_log( NWIPE_LOG_INFO, "Nwipe successfully completed. See summary table for details." );
+                nwipe_log( NWIPE_LOG_INFO, "WyoSWipe successfully completed. See summary table for details." );
             }
         }
     }

@@ -38,11 +38,11 @@
 config_t nwipe_cfg;
 config_setting_t *nwipe_conf_setting, *group_organisation, *root, *group, *previous_group, *setting;
 const char* nwipe_conf_str;
-char nwipe_config_directory[] = "/etc/nwipe";
-char nwipe_config_file[] = "/etc/nwipe/nwipe.conf";
-char nwipe_customers_file[] = "/etc/nwipe/nwipe_customers.csv";
-char nwipe_customers_file_backup[] = "/etc/nwipe/nwipe_customers.csv.backup";
-char nwipe_customers_file_backup_tmp[] = "/etc/nwipe/nwipe_customers.csv.backup.tmp";
+char nwipe_config_directory[] = "/etc/wyoswipe";
+char nwipe_config_file[] = "/etc/wyoswipe/wyoswipe.conf";
+char nwipe_customers_file[] = "/etc/wyoswipe/wyoswipe_customers.csv";
+char nwipe_customers_file_backup[] = "/etc/wyoswipe/wyoswipe_customers.csv.backup";
+char nwipe_customers_file_backup_tmp[] = "/etc/wyoswipe/wyoswipe_customers.csv.backup.tmp";
 
 /*
  * Checks for the existence of nwipe.conf and nwipe_customers.csv
@@ -57,8 +57,8 @@ int nwipe_conf_init()
 
     config_init( &nwipe_cfg );
     char nwipe_customers_initial_content[] =
-        "\"Customer Name\";\"Contact Name\";\"Customer Address\";\"Contact Phone\"\n"
-        "\"Not Applicable\";\"Not Applicable\";\"Not Applicable\";\"Not Applicable\"\n";
+        "\"Customer Name\";\"Contact Name\";\"Customer Address\";\"Customer CityStatePostal\";\"Contact Phone\"\n"
+        "\"Sample Customer\";\"Sample Name\";\"Sample Address\";\"Sample CityStatePostal\";\"Sample Phone\"\n";
 
     /* Read /etc/nwipe/nwipe.conf. If there is an error, determine whether
      * it's because it doesn't exist. If it doesn't exist create it and
@@ -68,11 +68,11 @@ int nwipe_conf_init()
     /* Does the /etc/nwipe/nwipe.conf file exist? If not, then create it */
     if( access( nwipe_config_file, F_OK ) == 0 )
     {
-        nwipe_log( NWIPE_LOG_INFO, "Nwipes config file %s exists", nwipe_config_file );
+        nwipe_log( NWIPE_LOG_INFO, "WyoSWipe's config file %s exists", nwipe_config_file );
 
         /* Read the nwipe.conf configuration file and report any errors */
 
-        nwipe_log( NWIPE_LOG_INFO, "Reading nwipe's config file %s", nwipe_config_file );
+        nwipe_log( NWIPE_LOG_INFO, "Reading WyoSWipe's config file %s", nwipe_config_file );
         if( !config_read_file( &nwipe_cfg, nwipe_config_file ) )
         {
             nwipe_log( NWIPE_LOG_ERROR,
@@ -111,36 +111,38 @@ int nwipe_conf_init()
      * to nwipes conf file they MUST appear below in this list of groups and settings.
      */
 
-    nwipe_conf_populate( "Organisation_Details.Business_Name", "Not Applicable (BN)" );
-    nwipe_conf_populate( "Organisation_Details.Business_Address", "Not Applicable (BA)" );
-    nwipe_conf_populate( "Organisation_Details.Contact_Name", "Not Applicable (BCN)" );
-    nwipe_conf_populate( "Organisation_Details.Contact_Phone", "Not Applicable (BCP)" );
-    nwipe_conf_populate( "Organisation_Details.Op_Tech_Name", "Not Applicable (OTN)" );
+    nwipe_conf_populate( "Organisation_Details.Business_Name", "Wyo Support" );
+    nwipe_conf_populate( "Organisation_Details.Business_Address", "114 East 7th Avenue Suite 200-B" );
+    nwipe_conf_populate( "Organisation_Details.Business_CityStatePostal", "Cheyenne, WY 82001");
+    nwipe_conf_populate( "Organisation_Details.Contact_Name", "John Keesling" );
+    nwipe_conf_populate( "Organisation_Details.Contact_Phone", "(307) 421-5705" );
+    nwipe_conf_populate( "Organisation_Details.Op_Tech_Name", "" );
 
     /**
      * Add PDF Certificate/Report settings
      */
     nwipe_conf_populate( "PDF_Certificate.PDF_Enable", "ENABLED" );
-    nwipe_conf_populate( "PDF_Certificate.PDF_Preview", "DISABLED" );
+    nwipe_conf_populate( "PDF_Certificate.PDF_Preview", "ENABLED" );
 
     /**
      * The currently selected customer that will be printed on the report
      */
-    nwipe_conf_populate( "Selected_Customer.Customer_Name", "Not Applicable (CN)" );
-    nwipe_conf_populate( "Selected_Customer.Customer_Address", "Not Applicable (CA)" );
-    nwipe_conf_populate( "Selected_Customer.Contact_Name", "Not Applicable (CCN)" );
-    nwipe_conf_populate( "Selected_Customer.Contact_Phone", "Not Applicable (CP)" );
+    nwipe_conf_populate( "Selected_Customer.Customer_Name", "" );
+    nwipe_conf_populate( "Selected_Customer.Customer_Address", "" );
+    nwipe_conf_populate( "Selected_Customer.Customer_CityStatePostal", "");
+    nwipe_conf_populate( "Selected_Customer.Contact_Name", "" );
+    nwipe_conf_populate( "Selected_Customer.Contact_Phone", "" );
 
     /**
      * Write out the new configuration.
      */
     if( !config_write_file( &nwipe_cfg, nwipe_config_file ) )
     {
-        nwipe_log( NWIPE_LOG_ERROR, "Failed to write nwipe config to %s", nwipe_config_file );
+        nwipe_log( NWIPE_LOG_ERROR, "Failed to write WyoSWipe config to %s", nwipe_config_file );
     }
     else
     {
-        nwipe_log( NWIPE_LOG_INFO, "Sucessfully written nwipe config to %s", nwipe_config_file );
+        nwipe_log( NWIPE_LOG_INFO, "Sucessfully written WyoSWipe config to %s", nwipe_config_file );
     }
 
     /* Read the nwipe.conf configuration file and report any errors */
@@ -158,7 +160,7 @@ int nwipe_conf_init()
      */
     if( access( nwipe_customers_file, F_OK ) == 0 )
     {
-        nwipe_log( NWIPE_LOG_INFO, "Nwipes customer file %s exists", nwipe_customers_file );
+        nwipe_log( NWIPE_LOG_INFO, "WyoSWipe's customer file %s exists", nwipe_customers_file );
     }
     else
     {
