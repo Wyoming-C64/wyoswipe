@@ -26,7 +26,12 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include <libgen.h>
+#include <limits.h>
+#include <unistd.h>
 #include <ctype.h>
+
 
 #include "wyoswipe.h"
 #include "context.h"
@@ -51,6 +56,51 @@ int check_device( nwipe_context_t*** c, PedDevice* dev, int dcount );
 char* trim( char* str );
 
 extern int terminate_signal;
+
+/**
+ * Helper functions to determine boot device. This compilation will exclude
+ * the boot device from the list since we do not want to accidentally wipe
+ * our own system. 
+ **/
+
+#define MAX_LINE 256
+
+// Get base device (e.g., from sda1 → sda)
+char *get_root_device(const char *partition_path) {
+    char *base = basename((char *)partition_path);
+    char sys_path[PATH_MAX];
+    char resolved[PATH_MAX];
+
+    // Build sysfs path: /sys/class/block/sda1
+    snprintf(sys_path, sizeof(sys_path), "/sys/class/block/%s", base);
+
+    // Resolve symlink to parent block device
+    ssize_t len = readlink(sys_path, resolved, sizeof(resolved) - 1);
+    if (len == -1) {
+        nwipe_log( NWIPE_LOG_ERROR, "Could not get root device: readlink error" );
+        return NULL;
+    }
+
+    resolved[len] = '\0';
+
+    char *p = strstr(resolved, "/block/");
+    if (p) {
+        p += strlen("/block/");
+        char *slash = strchr(p, '/');
+        if (slash) *slash = '\0';
+
+        // Allocate result string
+        char *result = malloc(strlen("/dev/") + strlen(p) + 1);
+        if (!result) {
+            nwipe_log( NWIPE_LOG_ERROR, "Could not get root device: malloc error");
+            return NULL;
+        }
+
+        sprintf(result, "/dev/%s", p);
+        return result;
+    }
+
+}
 
 int nwipe_device_scan( nwipe_context_t*** c )
 {
@@ -179,6 +229,53 @@ int check_device( nwipe_context_t*** c, PedDevice* dev, int dcount )
         }
     }
 
+    /* Check whether a device is the boot device. We do not want to
+     * accidentally destroy this utility by wiping the drive, which
+     * is likely running off a USB drive. 
+     * 
+     * (Using --nousb prevents us from wiping additional external 
+     * drives that are *not* the boot drive...) */
+   
+    FILE *fp;
+    char line[MAX_LINE];
+    char device[128];
+    char *root_device = NULL;
+    char *trash = NULL;
+
+    // Step 1: Run df /
+    fp = popen("df /", "r");
+    if (!fp) {
+        perror("popen");
+        return 1;
+    }
+
+    // Skip header
+    trash = fgets(line, sizeof(line), fp);
+
+    // Read line with root device
+    if (fgets(line, sizeof(line), fp)) {
+        sscanf(line, "%127s", device);
+
+        root_device = get_root_device(device);
+        if (root_device) {
+            nwipe_log(NWIPE_LOG_INFO ,"Root device: %s\n", root_device);
+        } else {
+            nwipe_log(NWIPE_LOG_ERROR, "Failed to resolve root device\n");
+        }
+    } else {
+        nwipe_log(NWIPE_LOG_ERROR, "Failed to read df output\n");
+    }
+
+    if( strcmp(root_device, dev->path) == 0 ) 
+    {
+        nwipe_log( NWIPE_LOG_INFO, "Device excluded as boot device." );
+        free(root_device);
+        return 0;
+    }   
+    free(root_device);
+
+    pclose(fp);
+
     /* Try opening the device to see if it's valid. Close on completion. */
     if( !ped_device_open( dev ) )
     {
@@ -212,6 +309,8 @@ int check_device( nwipe_context_t*** c, PedDevice* dev, int dcount )
 
     /* full device name, i.e. /dev/sda */
     next_device->device_name = dev->path;
+
+    
 
     /* remove /dev/ from device, right justify and prefix name so string length is eight characters */
     nwipe_strip_path( next_device->device_name_without_path, next_device->device_name );
