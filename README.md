@@ -1,13 +1,13 @@
-# nwipe
+# wyoswipe
 ![GitHub CI badge](https://github.com/martijnvanbrummelen/nwipe/workflows/ci_ubuntu_latest/badge.svg)
 [![GitHub release](https://img.shields.io/github/release/martijnvanbrummelen/nwipe)](https://github.com/martijnvanbrummelen/nwipe/releases/)
 
-nwipe is a fork of the dwipe command originally used by Darik's Boot and Nuke (DBAN). nwipe was created out of a need to run the DBAN dwipe command outside of DBAN, in order to allow its use with any host distribution, thus giving better hardware support.
+wyoswipe is a fork of the nwipe -> dwipe command originally used by Darik's Boot and Nuke (DBAN). nwipe was created out of a need to run the DBAN dwipe command outside of DBAN, in order to allow its use with any host distribution, thus giving better hardware support.
 
-nwipe is a program that will securely erase the entire contents of disks. It can wipe a single drive or multiple disks simultaneously. It can operate as both a command line tool without a GUI or with a ncurses GUI as shown in the example below:
+wyoswipe is a program that will securely erase the entire contents of disks. It can wipe a single drive or multiple disks simultaneously. It can operate as both a command line tool without a GUI or with a ncurses GUI as shown in the example below:
 
 > **Warning**
-> For some of nwipes features such as smart data in the PDF certificate, HPA/DCO detection and other uses, nwipe utilises smartmontools and hdparm. Therefore both hdparm & smartmontools are a mandatory requirement if you want all of nwipes features to be fully available. If you do not install smartmontools and hdparm, nwipe will provide a warning in the log that these programs cannot be found but will still run but many important features may not work as they should do.
+> For some of wyoswipe's features such as smart data in the PDF certificate, HPA/DCO detection and other uses, nwipe utilises smartmontools and hdparm. Therefore both hdparm & smartmontools are a mandatory requirement if you want all of nwipes features to be fully available. If you do not install smartmontools and hdparm, nwipe will provide a warning in the log that these programs cannot be found but will still run but many important features may not work as they should do.
 
 ![Example wipe](/images/example_wipe.gif)
 
@@ -49,14 +49,14 @@ nwipe is also included in [ShredOS](https://github.com/PartialVolume/shredos.x86
 
 For a development setup, see the [Hacking section](#hacking) below. For a bootable version of the very latest nwipe master that you can write to an USB flash drive or CD/DVD, see the [Quick and easy bootable version of nwipe master section](#quick--easy-usb-bootable-version-of-nwipe-master-for-x86_64-systems) below.
 
-`nwipe` requires the following libraries to be installed:
+`wyoswipe` requires the following libraries to be installed:
 
 * ncurses
 * pthreads
 * parted
 * libconfig
 
-`nwipe` also requires the following program to be installed, it will abort with a warning if not found:
+`wyoswipe` also requires the following program to be installed, it will abort with a warning if not found:
 
 * hdparm (as of current master and v0.35+)
 
@@ -68,7 +68,7 @@ and optionally, but recommended, the following programs:
 
 ### Debian & Ubuntu prerequisites
 
-If you are compiling `nwipe` from source, the following libraries will need to be installed first:
+If you are compiling `wyoswipe` from source, the following libraries will need to be installed first:
 
 ```bash
 sudo apt install \
