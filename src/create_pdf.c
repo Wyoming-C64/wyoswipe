@@ -67,6 +67,50 @@ int pica( float picas )
     return picas * 12;
 }
 
+char *get_service_tag() {
+    const char *fallback = "_______________________";
+    const char *dmi_paths[] = {
+        "/sys/class/dmi/id/product_serial",
+        "/sys/class/dmi/id/board_serial",
+        "/sys/class/dmi/id/chassis_serial",
+        "/sys/class/dmi/id/product_uuid"
+    };
+    const int path_count = sizeof(dmi_paths) / sizeof(dmi_paths[0]);
+
+    char buffer[128];
+
+    for (int i = 0; i < path_count; i++) {
+        FILE *fp = fopen(dmi_paths[i], "r");
+        if (fp == NULL)
+            continue;
+
+        if (fgets(buffer, sizeof(buffer), fp) != NULL) {
+            fclose(fp);
+
+            // Strip newline
+            size_t len = strlen(buffer);
+            if (len > 0 && buffer[len - 1] == '\n')
+                buffer[len - 1] = '\0';
+
+            if (strlen(buffer) > 0) {
+                if (i == 3) {  // product_uuid
+                    size_t buflen = strlen(buffer);
+                    const char *suffix = buflen >= 12 ? buffer + buflen - 12 : buffer;
+                    char result[32];  // 13 + 12 + 1 = 26 max, so 32 is safe
+                    snprintf(result, sizeof(result), "UUID ending: %.12s", suffix);
+                    return strdup(result);
+                } else {
+                    return strdup(buffer);
+                }
+            }
+        } else {
+            fclose(fp);
+        }
+    }
+
+    return strdup(fallback);
+}
+
 
 int create_pdf( nwipe_context_t* ptr )
 {
@@ -290,12 +334,15 @@ int create_pdf( nwipe_context_t* ptr )
     pdf_add_text( pdf, NULL, c->device_type_str, text_size_data, drive_info_col_B, pica(39), PDF_BLACK );
     pdf_set_font( pdf, "Helvetica" );
 
-    /******************************
-     * Computer/Device Serial Number (Blank for Technician to write in.)
+    /****************************************
+     * Computer/Device Serial Number 
+     * (Blank if no serial number found, 
+     * allowing for Technician to write in.)
      */
+    char *service_tag_number = get_service_tag();
     pdf_add_text( pdf, NULL, "Computer S/N:", text_size_data, 310, pica(38), PDF_GRAY );
     pdf_set_font( pdf, "Courier-Bold" );
-    pdf_add_text( pdf, NULL, "_______________________", text_size_data, drive_info_col_B, pica(37.5), PDF_BLACK );
+    pdf_add_text( pdf, NULL, service_tag_number, text_size_data, drive_info_col_B, pica(38), PDF_BLACK );
     pdf_set_font( pdf, "Helvetica" );
 
     /*************************

@@ -4,7 +4,7 @@
  * used by configure to dynamically assign those values
  * to documentation files.
  */
-const char* version_string = "1.37";
+const char* version_string = "1.38";
 const char* program_name = "WyoSwipe";
 const char* author_name = "Mike Lewis";
 const char* email_address = "ithelp@wyosupport.com";
@@ -14,4 +14,4 @@ Modifications to original dwipe Copyright Andy Beverley <andy@andybev.com>\n\
 This is free software; see the source for copying conditions.\n\
 There is NO warranty; not even for MERCHANTABILITY or FITNESS\n\
 FOR A PARTICULAR PURPOSE.\n";
-const char* banner = "WyoSwipe 1.37";
+const char* banner = "WyoSwipe 1.38";
