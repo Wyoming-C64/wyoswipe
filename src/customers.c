@@ -250,7 +250,7 @@ void write_customer_csv_entry( char* customer_name,
 
     /* Determine length of all four strings and malloc sufficient storage + 15 = 10 quotes + four colons + null */
     csv_line_length = strlen( customer_name ) + strlen( customer_address ) + strlen( customer_citystatepostal ) 
-        + ( customer_contact_name ) + strlen( customer_contact_phone ) + 15;
+        + strlen( customer_contact_name ) + strlen( customer_contact_phone ) + 15;
     if( !( csv_buffer = calloc( 1, csv_line_length == 0 ) ) )
     {
         nwipe_log( NWIPE_LOG_ERROR, "func:nwipe_gui_add_customer:csv_buffer, calloc returned NULL " );
