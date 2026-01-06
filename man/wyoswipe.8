@@ -6,12 +6,11 @@ wyoswipe \- securely erase disks
 [\fIoptions\fR] [\fIdevice1\fR] [\fIdevice2\fR] ...
 .SH DESCRIPTION
 wyoswipe is a command that will securely erase disks using a variety of
-recognised methods.  It is a fork of the dwipe command used by Darik's Boot
-and Nuke (dban).  wyoswipe is included with partedmagic if you want a quick and
-easy bootable CD version.  wyoswipe was created out of a need to run the DBAN
+recognised methods. It is a fork of the dwipe command used by Darik's Boot
+and Nuke (dban). wyoswipe was created out of a need to run the DBAN
 dwipe command outside of DBAN, in order to allow its use with any host
-distribution, thus giving better hardware support.  It is essentially the
-same as dwipe, with a few changes:
+distribution, thus giving better hardware support. It is essentially the
+same as dwipe, branded for Wyo Support, with a few changes:
 .TP
 - pthreads is used instead of fork
 .TP
@@ -63,7 +62,11 @@ Do not allow signals to interrupt a wipe (default is to allow).
 .TP
 \fB\-\-nousb\fR
 Do not show or wipe any USB devices, whether in GUI, --nogui or autonuke
-mode. (default is to allow USB devices to be shown and wiped).
+mode. (default is to allow USB devices to be shown and wiped). Note that the 
+application attempts to detect and omit the device that booted the system
+so that you don't accidentally nuke your environment. Wyoswipe is best executed
+from external bootable media to wipe a system drive, or can be used to wipe other
+external drives.
 .TP
 \fB\-\-nogui\fR
 Do not show the GUI interface. Can only be used with the autonuke option.

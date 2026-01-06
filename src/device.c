@@ -272,7 +272,7 @@ int check_device( nwipe_context_t*** c, PedDevice* dev, int dcount )
         free(root_device);
         return 0;
     }   
-    free(root_device);
+    // REMOVED: free(root_device);
 
     pclose(fp);
 
