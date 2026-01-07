@@ -340,6 +340,13 @@ int create_pdf( nwipe_context_t* ptr )
      * allowing for Technician to write in.)
      */
     char *service_tag_number = get_service_tag();
+
+    if (c->device_type_str && strcmp(c->device_type_str, "USB") == 0) {
+        // If the bus is USB, then it is 99% likely that this drive came out
+        // of a different computer, therefore the service tag ID doesn't apply.
+        free(service_tag_number);
+        service_tag_number = strdup("_______________________");
+    }
     pdf_add_text( pdf, NULL, "Computer S/N:", text_size_data, 310, pica(38), PDF_GRAY );
     pdf_set_font( pdf, "Courier-Bold" );
     pdf_add_text( pdf, NULL, service_tag_number, text_size_data, drive_info_col_B, pica(38), PDF_BLACK );
@@ -914,7 +921,10 @@ int create_pdf( nwipe_context_t* ptr )
               end_time_text );
 
     pdf_save( pdf, c->PDF_filename );
+    
+    // Cleanup goes here!
     pdf_destroy( pdf );
+    free(service_tag_number);
     return 0;
 }
 
