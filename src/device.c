@@ -67,7 +67,11 @@ extern int terminate_signal;
 
 // Get base device (e.g., from sda1 → sda)
 char *get_root_device(const char *partition_path) {
-    char *base = basename((char *)partition_path);
+
+    char part_copy[PATH_MAX];
+    snprintf(part_copy, sizeof(part_copy), "%s", partition_path);
+    char *base = basename(part_copy);
+
     char sys_path[PATH_MAX];
     char resolved[PATH_MAX];
 
@@ -99,6 +103,9 @@ char *get_root_device(const char *partition_path) {
         sprintf(result, "/dev/%s", p);
         return result;
     }
+
+   // If all else fails...
+   return NULL;
 
 }
 
@@ -231,16 +238,17 @@ int check_device( nwipe_context_t*** c, PedDevice* dev, int dcount )
 
     /* Check whether a device is the boot device. We do not want to
      * accidentally destroy this utility by wiping the drive, which
-     * is likely running off a USB drive. 
-     * 
-     * (Using --nousb prevents us from wiping additional external 
+     * is likely running off a USB drive.
+     *
+     * (Using --nousb prevents us from wiping additional external
      * drives that are *not* the boot drive...) */
-   
+
     FILE *fp;
     char line[MAX_LINE];
-    char device[128];
+    char device[128] = {0};
     char *root_device = NULL;
     char *trash = NULL;
+    int is_boot = 0;
 
     // Step 1: Run df /
     fp = popen("df /", "r");
@@ -266,15 +274,22 @@ int check_device( nwipe_context_t*** c, PedDevice* dev, int dcount )
         nwipe_log(NWIPE_LOG_ERROR, "Failed to read df output\n");
     }
 
-    if( strcmp(root_device, dev->path) == 0 ) 
-    {
-        nwipe_log( NWIPE_LOG_INFO, "Device excluded as boot device." );
-        free(root_device);
-        return 0;
-    }   
-    // REMOVED: free(root_device);
+    // Check if the device is the df-reported root (often a partition...)
+    if (strcmp(device, dev->path) == 0) {
+        is_boot = 1;
+    }
 
+    if( root_device && strcmp(root_device, dev->path) == 0 ) {
+        is_boot = 1;
+    }
+
+    free(root_device);
     pclose(fp);
+
+    if (is_boot) {
+        nwipe_log( NWIPE_LOG_INFO, "Device excluded as boot device." );
+        return 0;
+    }
 
     /* Try opening the device to see if it's valid. Close on completion. */
     if( !ped_device_open( dev ) )
@@ -309,8 +324,6 @@ int check_device( nwipe_context_t*** c, PedDevice* dev, int dcount )
 
     /* full device name, i.e. /dev/sda */
     next_device->device_name = dev->path;
-
-    
 
     /* remove /dev/ from device, right justify and prefix name so string length is eight characters */
     nwipe_strip_path( next_device->device_name_without_path, next_device->device_name );
