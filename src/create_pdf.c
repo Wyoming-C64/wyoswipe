@@ -112,6 +112,21 @@ char *get_service_tag() {
 }
 
 
+static int device_type_suppress_host_serial(int nwipe_device_type)
+{
+    switch (nwipe_device_type) {
+        case NWIPE_DEVICE_USB:
+        case NWIPE_DEVICE_IEEE1394:
+        case NWIPE_DEVICE_MMC:
+        case NWIPE_DEVICE_VIRT:
+        case NWIPE_DEVICE_UNKNOWN:
+            return 1;
+
+        default:
+            return 0;
+    }
+}
+
 int create_pdf( nwipe_context_t* ptr )
 {
     extern nwipe_prng_t nwipe_twister;
@@ -327,7 +342,7 @@ int create_pdf( nwipe_context_t* ptr )
     pdf_set_font( pdf, "Helvetica" );
 
     /******************************
-     * Bus type, ATA, USB, NVME etc
+     * Bus type, ATA, USB, NVME etc 
      */
     pdf_add_text( pdf, NULL, "Bus:", text_size_data, 310, pica(39), PDF_GRAY );
     pdf_set_font( pdf, "Helvetica-Bold" );
@@ -339,14 +354,21 @@ int create_pdf( nwipe_context_t* ptr )
      * (Blank if no serial number found, 
      * allowing for Technician to write in.)
      */
-    char *service_tag_number = get_service_tag();
+    char *service_tag_number = NULL;
 
-    if (c->device_type_str && strcmp(c->device_type_str, "USB") == 0) {
-        // If the bus is USB, then it is 99% likely that this drive came out
+    if (device_type_suppress_host_serial(c->device_type)) {
+        // If the bus is USB, FireWire, or other "removable" media, then it is 99% likely that this drive came out
         // of a different computer, therefore the service tag ID doesn't apply.
-        free(service_tag_number);
         service_tag_number = strdup("_______________________");
+    } else {
+        service_tag_number = get_service_tag();
+        // If that failed for some reason... fall back to a blank.
+        if (!service_tag_number || service_tag_number[0] == '\0') {
+            free(service_tag_number);
+            service_tag_number = strdup("_______________________");
+        }
     }
+
     pdf_add_text( pdf, NULL, "Computer S/N:", text_size_data, 310, pica(38), PDF_GRAY );
     pdf_set_font( pdf, "Courier-Bold" );
     pdf_add_text( pdf, NULL, service_tag_number, text_size_data, drive_info_col_B, pica(38), PDF_BLACK );
