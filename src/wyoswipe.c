@@ -8,7 +8,7 @@
  *
  *  Modifications to original dwipe Copyright Andy Beverley <andy@andybev.com> 
  * 
- *  Specific branding modifications by Mike Lewis <mike@wyosupport.com>
+ *  Specific branding modifications and improvements by Mike Lewis <mike@wyosupport.com>
  * 
  *  This program is free software; you can redistribute it and/or modify it under
  *  the terms of the GNU General Public License as published by the Free Software
@@ -210,8 +210,11 @@ int main( int argc, char** argv )
 
         if( nwipe_enumerated == 0 )
         {
-            nwipe_log( NWIPE_LOG_INFO,
-                       "Storage devices not found. WyoSWipe should be run as root or sudo/su, i.e sudo wyoswipe etc" );
+            nwipe_log( NWIPE_LOG_ERROR, "Eligible candidate devices not found - WyoSWipe system device does not count." );
+            nwipe_log( NWIPE_LOG_ERROR, "Check you're not excluding drives unnecessarily,");
+            nwipe_log( NWIPE_LOG_ERROR, "and you are running WyoSWipe as 'sudo' or as 'root'." );
+            printf( "\nEligible candidate devices not found - WyoSWipe system device does not count.\n Check you're not excluding drives unnecessarily,\nand you are running WyoSWipe "
+                    "as 'sudo' or as 'root'." );
             cleanup();
             return -1;
         }
@@ -228,10 +231,11 @@ int main( int argc, char** argv )
         nwipe_enumerated = nwipe_device_get( &c1, argv, argc );
         if( nwipe_enumerated == 0 )
         {
-            nwipe_log( NWIPE_LOG_ERROR, "Devices not found. Check you're not excluding drives unnecessarily," );
-            nwipe_log( NWIPE_LOG_ERROR, "and you are running WyoSWipe as sudo or as root." );
-            printf( "Devices not found, check you're not excluding drives unnecessarily \n and you are running WyoSWipe "
-                    "as sudo or as root." );
+            nwipe_log( NWIPE_LOG_ERROR, "Eligible candidate devices not found - WyoSWipe system device does not count." );
+            nwipe_log( NWIPE_LOG_ERROR, "Check you're not excluding drives unnecessarily,");
+            nwipe_log( NWIPE_LOG_ERROR, "and you are running WyoSWipe as 'sudo' or as 'root'." );
+            printf( "Eligible candidate devices not found - WyoSWipe system device does not count.\n Check you're not excluding drives unnecessarily,\nand you are running WyoSWipe "
+                    "as 'sudo' or as 'root'." );
             cleanup();
             exit( 1 );
         }

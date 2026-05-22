@@ -176,8 +176,8 @@ int create_pdf( nwipe_context_t* ptr )
 
     /* variables used by libconfig */
     config_setting_t* setting;
-    const char *business_name, *business_address, *business_citystatepostal, *contact_name, *contact_phone, *op_tech_name, 
-        *customer_name, *customer_address, *customer_citystatepostal, *customer_contact_name, *customer_contact_phone;
+    const char *business_name, *business_address, *business_citystatepostal, *contact_name, *contact_phone, *business_email, *op_tech_name, 
+        *customer_name, *customer_address, *customer_citystatepostal, *customer_contact_name, *customer_contact_phone, *customer_contact_email;
 
     /* ------------------ */
     /* Initialise Various */
@@ -266,6 +266,10 @@ int create_pdf( nwipe_context_t* ptr )
             // pdf_add_text( pdf, NULL, contact_phone, text_size_data, 390, 570, PDF_BLACK );
             pdf_add_text( pdf, NULL, contact_phone, text_size_data, 60, pica(44), PDF_BLACK );
         }
+        if( config_setting_lookup_string( setting, "Business_Email", &business_email ) )
+        {
+            pdf_add_text( pdf, NULL, contact_phone, text_size_data, 60, pica(43), PDF_BLACK );
+        }
         pdf_set_font( pdf, "Helvetica" );
     }
     else
@@ -306,6 +310,10 @@ int create_pdf( nwipe_context_t* ptr )
         if( config_setting_lookup_string( setting, "Contact_Phone", &customer_contact_phone ) )
         {
             pdf_add_text( pdf, NULL, customer_contact_phone, text_size_data, 310, pica(44), PDF_BLACK );
+        }
+        if( config_setting_lookup_string( setting, "Contact_Email", &customer_contact_email ) )
+        {
+            pdf_add_text( pdf, NULL, customer_contact_email, text_size_data, 310, pica(43), PDF_BLACK );
         }
         pdf_set_font( pdf, "Helvetica" );
     }

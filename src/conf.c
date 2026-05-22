@@ -57,8 +57,8 @@ int nwipe_conf_init()
 
     config_init( &nwipe_cfg );
     char nwipe_customers_initial_content[] =
-        "\"Customer Name\";\"Contact Name\";\"Customer Address\";\"Customer CityStatePostal\";\"Contact Phone\"\n"
-        "\"Sample Customer\";\"Sample Name\";\"Sample Address\";\"Sample CityStatePostal\";\"Sample Phone\"\n";
+        "\"Customer Name\";\"Customer Address\";\"Customer CityStatePostal\";\"Contact Name\";\"Contact Phone\";\"Contact Email\"\n"
+        "\"Wyo Support LLC\";\"114 East 7th Avenue Suite 200-B\";\"Cheyenne, WY 82001\";\"John Keesling\";\"(307) 787-7678\";\"ithelp@wyosupport.com\"\n";
 
     /* Read /etc/nwipe/nwipe.conf. If there is an error, determine whether
      * it's because it doesn't exist. If it doesn't exist create it and
@@ -116,6 +116,7 @@ int nwipe_conf_init()
     nwipe_conf_populate( "Organisation_Details.Business_CityStatePostal", "Cheyenne, WY 82001");
     nwipe_conf_populate( "Organisation_Details.Contact_Name", "John Keesling" );
     nwipe_conf_populate( "Organisation_Details.Contact_Phone", "(307) 421-5705" );
+    nwipe_conf_populate( "Organisation_Details.Business_Email", "ithelp@wyosupport.com" );
     nwipe_conf_populate( "Organisation_Details.Op_Tech_Name", "" );
 
     /**
@@ -132,6 +133,7 @@ int nwipe_conf_init()
     nwipe_conf_populate( "Selected_Customer.Customer_CityStatePostal", "");
     nwipe_conf_populate( "Selected_Customer.Contact_Name", "" );
     nwipe_conf_populate( "Selected_Customer.Contact_Phone", "" );
+    nwipe_conf_populate( "Selected_Customer.Customer_Email", "" );
 
     /**
      * Write out the new configuration.
@@ -210,6 +212,7 @@ void save_selected_customer( char** customer )
     char field_3[FIELD_LENGTH];
     char field_4[FIELD_LENGTH];
     char field_5[FIELD_LENGTH];
+    char field_6[FIELD_LENGTH];
 
     /* zero the field strings */
     for( idx = 0; idx < FIELD_LENGTH; idx++ )
@@ -266,6 +269,13 @@ void save_selected_customer( char** customer )
                                 {
                                     field_5[field_idx++] = *( *customer + idx );
                                 }
+                                else
+                                {
+                                    if( field_count == 6 && field_idx < ( FIELD_LENGTH - 1 ) )
+                                    {
+                                        field_6[field_idx++] = *( *customer + idx );
+                                    }
+                                }
                             }
                         }
                     }
@@ -292,6 +302,9 @@ void save_selected_customer( char** customer )
                     case 5:
                         field_5[field_idx] = 0;
                         break;
+                    case 6:
+                        field_6[field_idx] = 0;
+                        break;
                 }
 
                 field_count++;
@@ -301,7 +314,7 @@ void save_selected_customer( char** customer )
         idx++;
     }
 
-    /* All 5 fields present? */
+    /* All 6 fields present? */
     if( field_count != NUMBER_OF_FIELDS + 1 )
     {
         nwipe_log( NWIPE_LOG_ERROR,
@@ -364,6 +377,16 @@ void save_selected_customer( char** customer )
     else
     {
         nwipe_log( NWIPE_LOG_ERROR, "Can't find \"Selected Customers.Contact_Phone\" in %s", nwipe_config_file );
+    }
+
+    // CUSTOMER CONTACT EMAIL
+    if( ( setting = config_lookup( &nwipe_cfg, "Selected_Customer.Contact_Email" ) ) )
+    {
+        config_setting_set_string( setting, field_6 );
+    }
+    else
+    {
+        nwipe_log( NWIPE_LOG_ERROR, "Can't find \"Selected Customers.Contact_Email\" in %s", nwipe_config_file );
     }
 
     /* Write out the new configuration. */

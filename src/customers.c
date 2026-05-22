@@ -30,6 +30,8 @@
 #include "customers.h"
 #include <sys/stat.h>
 
+#define CUSTOMER_DISPLAY_LEN 256
+
 void customer_processes( int mode )
 {
     /* This function reads the customers.csv file, counts the number of lines,
@@ -174,22 +176,134 @@ void customer_processes( int mode )
     free( buffer );
 }
 
-void select_customers( int count, char** customer_list_array )
+
+
+static int csv_copy_first_field(char *dest, size_t dest_size, const char *line)
+{
+    size_t i = 0;
+    size_t out = 0;
+
+    if (!dest || dest_size == 0) {
+        return -1;
+    }
+
+    dest[0] = '\0';
+
+    if (!line) {
+        return -1;
+    }
+
+    /*
+     * Quoted first field:
+     *   "ABC Company, LLC",1234 Wilson Way,...
+     */
+    if (line[0] == '"') {
+        i = 1;
+
+        while (line[i] != '\0') {
+            if (line[i] == '"') {
+                if (line[i + 1] == '"') {
+                    if (out + 1 < dest_size) {
+                        dest[out++] = '"';
+                    }
+
+                    i += 2;
+                    continue;
+                }
+
+                break;
+            }
+
+            if (out + 1 < dest_size) {
+                dest[out++] = line[i];
+            }
+
+            i++;
+        }
+
+        dest[out] = '\0';
+        return 0;
+    }
+
+    /*
+     * Unquoted first field:
+     *   ABC Company,1234 Wilson Way,...
+     */
+    while (line[i] != '\0' && line[i] != ',') {
+        if (out + 1 < dest_size) {
+            dest[out++] = line[i];
+        }
+
+        i++;
+    }
+
+    dest[out] = '\0';
+    return 0;
+}
+
+
+
+void select_customers(int count, char **customer_list_array)
 {
     int selected_entry = 0;
     char window_title[] = " Select Customer For PDF Report ";
+    char **customer_display_array = NULL;
+    int i;
 
-    /* Display the customer selection window */
-    nwipe_gui_list( count, window_title, customer_list_array, &selected_entry );
-
-    /* Save the selected customer details to nwipe's config file /etc/nwipe/nwipe.conf
-     * If selected entry equals 0, then the customer did not select an entry so skip save.
-     */
-    if( selected_entry != 0 )
-    {
-        save_selected_customer( &customer_list_array[selected_entry - 1] );
+    if (count <= 0 || !customer_list_array) {
+        return;
     }
+
+    customer_display_array = calloc((size_t)count, sizeof(char *));
+    if (!customer_display_array) {
+        nwipe_log(NWIPE_LOG_ERROR,
+                  "select_customers: failed to allocate display array");
+        return;
+    }
+
+    for (i = 0; i < count; i++) {
+        customer_display_array[i] = calloc(CUSTOMER_DISPLAY_LEN, sizeof(char));
+
+        if (!customer_display_array[i]) {
+            nwipe_log(NWIPE_LOG_ERROR,
+                      "select_customers: failed to allocate display row");
+
+            while (i > 0) {
+                i--;
+                free(customer_display_array[i]);
+            }
+
+            free(customer_display_array);
+            return;
+        }
+
+        if (csv_copy_first_field(customer_display_array[i],
+                                 CUSTOMER_DISPLAY_LEN,
+                                 customer_list_array[i]) != 0) {
+            snprintf(customer_display_array[i],
+                     CUSTOMER_DISPLAY_LEN,
+                     "%s",
+                     "(invalid customer entry)");
+        }
+    }
+
+    nwipe_gui_list(count,
+                   window_title,
+                   customer_display_array,
+                   &selected_entry);
+
+    if (selected_entry > 0 && selected_entry <= count) {
+        save_selected_customer(&customer_list_array[selected_entry - 1]);
+    }
+
+    for (i = 0; i < count; i++) {
+        free(customer_display_array[i]);
+    }
+
+    free(customer_display_array);
 }
+
+
 
 void delete_customer( int count, char** customer_list_array )
 {
@@ -208,7 +322,8 @@ void write_customer_csv_entry( char* customer_name,
                                char* customer_address,
                                char* customer_citystatepostal,
                                char* customer_contact_name,
-                               char* customer_contact_phone )
+                               char* customer_contact_phone,
+                               char* customer_contact_email )
 {
     /**
      * Write the attached strings in csv format to the first
@@ -248,9 +363,9 @@ void write_customer_csv_entry( char* customer_name,
 
     size_t new_customers_buffer_length;
 
-    /* Determine length of all four strings and malloc sufficient storage + 15 = 10 quotes + four colons + null */
+    /* Determine length of all six strings and malloc sufficient storage + 18 = 12 quotes + 5 colons + null */
     csv_line_length = strlen( customer_name ) + strlen( customer_address ) + strlen( customer_citystatepostal ) 
-        + strlen( customer_contact_name ) + strlen( customer_contact_phone ) + 15;
+        + strlen( customer_contact_name ) + strlen( customer_contact_phone ) + strlen( customer_contact_email ) + 18;
     if( !( csv_buffer = calloc( 1, csv_line_length == 0 ) ) )
     {
         nwipe_log( NWIPE_LOG_ERROR, "func:nwipe_gui_add_customer:csv_buffer, calloc returned NULL " );

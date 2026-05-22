@@ -397,7 +397,7 @@ int check_device( nwipe_context_t*** c, PedDevice* dev, int dcount )
 
 
 
-    
+
     /* Check whether a device is the boot device. We do not want to
      * accidentally destroy this utility by wiping the drive, which
      * is likely running off a USB drive.

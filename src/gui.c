@@ -2915,7 +2915,7 @@ void nwipe_gui_edit_organisation( void )
 
     /* variables used by libconfig for extracting data from nwipe.conf */
     config_setting_t* setting;
-    const char *business_name, *business_address, *business_citystatepostal, *contact_name, *contact_phone, *op_tech_name;
+    const char *business_name, *business_address, *business_citystatepostal, *contact_name, *contact_phone, *business_email, *op_tech_name;
     extern config_t nwipe_cfg;
 
     do
@@ -2941,6 +2941,7 @@ void nwipe_gui_edit_organisation( void )
             mvwprintw( main_window, yy++, tab1, "  %s", "Edit City, State, Postal Code");
             mvwprintw( main_window, yy++, tab1, "  %s", "Edit Contact Name" );
             mvwprintw( main_window, yy++, tab1, "  %s", "Edit Contact Phone" );
+            mvwprintw( main_window, yy++, tab1, "  %s", "Edit Business E-mail" );
             mvwprintw( main_window, yy++, tab1, "  %s", "Edit Tech/Operator" );
             mvwprintw( main_window, yy++, tab1, "                             " );
 
@@ -2991,20 +2992,30 @@ void nwipe_gui_edit_organisation( void )
             }
 
             /* Retrieve data from nwipe.conf */
-            if( config_setting_lookup_string( setting, "Op_Tech_Name", &op_tech_name ) )
+            if( config_setting_lookup_string( setting, "Business_Email", &business_email ) )
             {
-                mvwprintw( main_window, 6, tab2, ": %s", op_tech_name );
+                mvwprintw( main_window, 6, tab2, ": %s", business_email );
             }
             else
             {
-                mvwprintw( main_window, 6, tab2, ": Cannot retrieve op_tech_name, nwipe.conf" );
+                mvwprintw( main_window, 6, tab2, ": Cannot retrieve business email, nwipe.conf" );
+            }
+
+            /* Retrieve data from nwipe.conf */
+            if( config_setting_lookup_string( setting, "Op_Tech_Name", &op_tech_name ) )
+            {
+                mvwprintw( main_window, 7, tab2, ": %s", op_tech_name );
+            }
+            else
+            {
+                mvwprintw( main_window, 7, tab2, ": Cannot retrieve op_tech_name, nwipe.conf" );
             }
 
             /* Add a border. */
             box( main_window, 0, 0 );
 
             /* Add a title. */
-            nwipe_gui_title( main_window, " PDF Report - Edit Organisation " );
+            nwipe_gui_title( main_window, " PDF Report - Edit Organization " );
 
             /* Refresh the window. */
             wrefresh( main_window );
@@ -3082,6 +3093,11 @@ void nwipe_gui_edit_organisation( void )
                     break;
 
                 case 5:
+                    nwipe_gui_organisation_business_email( business_email );
+                    keystroke = 0;
+                    break;
+
+                case 6:
                     nwipe_gui_organisation_op_tech_name( op_tech_name );
                     keystroke = 0;
                     break;
@@ -3794,6 +3810,149 @@ void nwipe_gui_organisation_contact_phone( const char* contact_phone )
 
 } /* End of nwipe_gui_organisation_contact_phone() */
 
+
+void nwipe_gui_organisation_business_email( const char* business_email )
+{
+    /**
+     * Allows the user to change the organisation contact email as displayed on the PDF report.
+     *
+     * @modifies  organisation contact email in nwipe.conf
+     * @modifies  main_window
+     *
+     */
+
+    /* The first tabstop. */
+    const int tab1 = 2;
+
+    /* The current working row. */
+    int yy;
+
+    /* Input buffer. */
+    int keystroke;
+
+    /* buffer */
+    char buffer[256] = "";
+
+    /* buffer index */
+    int idx = 0;
+
+    extern int terminate_signal;
+
+    /* variables used by libconfig for inserting data into nwipe.conf */
+    config_setting_t* setting;
+    // const char* contact_name;
+    extern config_t nwipe_cfg;
+    extern char nwipe_config_file[];
+
+    /* Update the footer window. */
+    werase( footer_window );
+    nwipe_gui_title( footer_window, selection_footer_text_entry );
+    wrefresh( footer_window );
+
+    /* Copy the current business address to the buffer */
+    strcpy( buffer, business_email );
+
+    /* Set the buffer index to point to the end of the string, i.e the NULL */
+    idx = strlen( buffer );
+
+    do
+    {
+        /* Erase the main window. */
+        werase( main_window );
+
+        nwipe_gui_create_all_windows_on_terminal_resize( 0, selection_footer_text_entry );
+
+        /* Add a border. */
+        box( main_window, 0, 0 );
+
+        /* Add a title. */
+        nwipe_gui_title( main_window, " Edit Business Email " );
+
+        /* Initialize the working row. */
+        yy = 4;
+
+        mvwprintw( main_window, yy++, tab1, "Enter the email adress for the business performing the erasure" );
+
+        /* Print this line last so that the cursor is in the right place. */
+        mvwprintw( main_window, 2, tab1, ">%s", buffer );
+
+        /* Reveal the cursor. */
+        curs_set( 1 );
+
+        /* Refresh the window. */
+        wrefresh( main_window );
+
+        /* Wait 250ms for input from getch, if nothing getch will then continue,
+         * This is necessary so that the while loop can be exited by the
+         * terminate_signal e.g.. the user pressing control-c to exit.
+         * Do not change this value, a higher value means the keys become
+         * sluggish, any slower and more time is spent unnecessarily looping
+         * which wastes CPU cycles.
+         */
+        timeout( 250 );  // block getch() for 250ms.
+        keystroke = getch();  // Get a keystroke.
+        timeout( -1 );  // Switch back to blocking mode.
+
+        switch( keystroke )
+        {
+            /* Escape key. */
+            case 27:
+                return;
+
+            case KEY_BACKSPACE:
+            case KEY_LEFT:
+            case 127:
+
+                if( idx > 0 )
+                {
+                    buffer[--idx] = 0;
+                }
+
+                break;
+
+        } /* switch keystroke */
+
+        if( ( keystroke >= ' ' && keystroke <= '~' ) && keystroke != '\"' && idx < 255 )
+        {
+            buffer[idx++] = keystroke;
+            buffer[idx] = 0;
+            mvwprintw( main_window, 2, tab1, ">%s", buffer );
+        }
+
+        /* Hide the cursor. */
+        curs_set( 0 );
+
+    } while( keystroke != 10 && terminate_signal != 1 );
+
+    /* libconfig: Locate the Organisation Details section in wyoswipe.conf */
+    if( !( setting = config_lookup( &nwipe_cfg, "Organisation_Details.Business_Email" ) ) )
+    {
+        nwipe_log( NWIPE_LOG_ERROR, "Failed to locate [Organisation_Details.Business_Email] in %s", nwipe_config_file );
+    }
+
+    /* libconfig: Write the organistion business email */
+    if( config_setting_set_string( setting, buffer ) == CONFIG_FALSE )
+    {
+        nwipe_log( NWIPE_LOG_ERROR,
+                   "Failed to write [%s] to [Organisation_Details.Business_Email] in %s",
+                   buffer,
+                   nwipe_config_file );
+    }
+
+    /* Write out the new configuration. */
+    if( config_write_file( &nwipe_cfg, nwipe_config_file ) == CONFIG_FALSE )
+    {
+        nwipe_log( NWIPE_LOG_ERROR, "Failed to write business email to %s", nwipe_config_file );
+    }
+    else
+    {
+        nwipe_log( NWIPE_LOG_INFO, "[Success] Business email written to %s", nwipe_config_file );
+    }
+
+} /* End of nwipe_gui_organisation_business_email() */
+
+
+
 void nwipe_gui_organisation_op_tech_name( const char* op_tech_name )
 {
     /**
@@ -4086,11 +4245,16 @@ void nwipe_gui_list( int count, char* window_title, char** list, int* selected_e
             {
                 /* print a entry from the list, we need to process the string before display,
                  * removing the double quotes that are used in csv for identifying the start & end of a field.
+                 * 
+                 * Fixed on May 22, 2026 to correct potential heap corruption when data contains no quotes. 
                  */
-                if( ( display_line = calloc( sizeof( char ), strlen( list[i + offset] ) ) ) )
+                size_t display_line_len = strlen( list[i + offset] );
+
+                if( ( display_line = calloc( display_line_len + 1, sizeof( char ) ) ) )
                 {
                     idx = 0;
                     idx2 = 0;
+
                     while( list[i + offset][idx] != 0 )
                     {
                         if( list[i + offset][idx] == '"' )
@@ -4102,6 +4266,7 @@ void nwipe_gui_list( int count, char* window_title, char** list, int* selected_e
                             display_line[idx2++] = list[i + offset][idx++];
                         }
                     }
+
                     display_line[idx2] = 0;
                     wprintw( main_window, "%s ", display_line );
                     free( display_line );
@@ -4336,6 +4501,7 @@ void nwipe_gui_add_customer( void )
     char customer_citystatepostal[FIELD_LENGTH] = "";
     char customer_contact_name[FIELD_LENGTH] = "";
     char customer_contact_phone[FIELD_LENGTH] = "";
+    char customer_contact_email[FIELD_LENGTH] = "";
 
     /* 0 = NO = don't save, 1 = YES = save customer */
     int save = NO;
@@ -4388,6 +4554,7 @@ void nwipe_gui_add_customer( void )
             mvwprintw( main_window, yy++, tab1, "  %s : %s", "Add Customer City, ST Postal", customer_citystatepostal);
             mvwprintw( main_window, yy++, tab1, "  %s : %s", "Add Customer Contact Name   ", customer_contact_name );
             mvwprintw( main_window, yy++, tab1, "  %s : %s", "Add Customer Contact Phone  ", customer_contact_phone );
+            mvwprintw( main_window, yy++, tab1, "  %s : %s", "Add Customer Contact Email  ", customer_contact_email );
             mvwprintw( main_window, yy++, tab1, "                             " );
 
             /* Print the cursor. */
@@ -4509,6 +4676,11 @@ void nwipe_gui_add_customer( void )
                     nwipe_gui_add_customer_contact_phone( customer_contact_phone );
                     keystroke = 0;
                     break;
+
+                case 5:
+                    nwipe_gui_add_customer_contact_email( customer_contact_email );
+                    keystroke = 0;
+                    break;
             }
         }
 
@@ -4518,7 +4690,7 @@ void nwipe_gui_add_customer( void )
     /* If save set, or user pressed s or S then save the customer details */
     if( keystroke == 's' || keystroke == 'S' || save == 1 )
     {
-        write_customer_csv_entry( customer_name, customer_address, customer_citystatepostal, customer_contact_name, customer_contact_phone );
+        write_customer_csv_entry( customer_name, customer_address, customer_citystatepostal, customer_contact_name, customer_contact_phone, customer_contact_email );
     }
 
 } /* end of nwipe_gui_add_customer( void ) */
@@ -5058,6 +5230,117 @@ void nwipe_gui_add_customer_contact_phone( char* customer_contact_phone )
 
 } /* End of nwipe_gui_add_customer_contact_phone() */
 
+
+
+void nwipe_gui_add_customer_contact_email( char* customer_contact_email )
+{
+    /**
+     * Allows the user to change the customer contact email as displayed on the PDF report.
+     *
+     * @modifies  customer's contact email
+     * @modifies  main_window
+     *
+     */
+
+    /* The first tabstop. */
+    const int tab1 = 2;
+
+    /* The current working row. */
+    int yy;
+
+    /* Input buffer. */
+    int keystroke;
+
+    /* buffer index */
+    int idx = 0;
+
+    extern int terminate_signal;
+
+    // const char* contact_name;
+    extern config_t nwipe_cfg;
+    extern char nwipe_config_file[];
+
+    /* Update the footer window. */
+    werase( footer_window );
+    nwipe_gui_title( footer_window, selection_footer_text_entry );
+    wrefresh( footer_window );
+
+    /* Set the buffer index to point to the end of the string, i.e the NULL */
+    idx = strlen( customer_contact_email );
+
+    do
+    {
+        /* Erase the main window. */
+        werase( main_window );
+
+        nwipe_gui_create_all_windows_on_terminal_resize( 0, selection_footer_text_entry );
+
+        /* Add a border. */
+        box( main_window, 0, 0 );
+
+        /* Add a title. */
+        nwipe_gui_title( main_window, " Add New Customer Contact Email " );
+
+        /* Initialize the working row. */
+        yy = 4;
+
+        mvwprintw( main_window, yy++, tab1, "Enter the customer's contact email" );
+
+        /* Print this line last so that the cursor is in the right place. */
+        mvwprintw( main_window, 2, tab1, ">%s", customer_contact_email );
+
+        /* Reveal the cursor. */
+        curs_set( 1 );
+
+        /* Refresh the window. */
+        wrefresh( main_window );
+
+        /* Wait 250ms for input from getch, if nothing getch will then continue,
+         * This is necessary so that the while loop can be exited by the
+         * terminate_signal e.g.. the user pressing control-c to exit.
+         * Do not change this value, a higher value means the keys become
+         * sluggish, any slower and more time is spent unnecessarily looping
+         * which wastes CPU cycles.
+         */
+        timeout( 250 );  // block getch() for 250ms.
+        keystroke = getch();  // Get a keystroke.
+        timeout( -1 );  // Switch back to blocking mode.
+
+        switch( keystroke )
+        {
+            /* Escape key. */
+            case 27:
+                return;
+
+            case KEY_BACKSPACE:
+            case KEY_LEFT:
+            case 127:
+
+                if( idx > 0 )
+                {
+                    customer_contact_email[--idx] = 0;
+                }
+
+                break;
+
+        } /* switch keystroke */
+
+        if( ( keystroke >= ' ' && keystroke <= '~' ) && keystroke != '\"' && idx < FIELD_LENGTH )
+        {
+            customer_contact_email[idx++] = keystroke;
+            customer_contact_email[idx] = 0;
+            mvwprintw( main_window, 2, tab1, ">%s", customer_contact_email );
+        }
+
+        /* Hide the cursor. */
+        curs_set( 0 );
+
+    } while( keystroke != 10 && terminate_signal != 1 );
+
+} /* End of nwipe_gui_add_customer_contact_email() */
+
+
+
 void nwipe_gui_preview_org_customer( int mode )
 {
     /**
@@ -5068,7 +5351,7 @@ void nwipe_gui_preview_org_customer( int mode )
     extern int terminate_signal;
 
     /* Number of entries in the configuration menu. */
-    const int count = 14;
+    const int count = 15;
 
     /* The first tabstop. */
     const int tab1 = 2;
@@ -5095,8 +5378,8 @@ void nwipe_gui_preview_org_customer( int mode )
 
     /* variables used by libconfig for extracting data from nwipe.conf */
     config_setting_t* setting;
-    const char *business_name, *business_address, *business_citystatepostal, *contact_name, *contact_phone, *op_tech_name;
-    const char *customer_name, *customer_address, *customer_citystatepostal, *customer_contact_name, *customer_contact_phone;
+    const char *business_name, *business_address, *business_citystatepostal, *contact_name, *contact_phone, *business_email, *op_tech_name;
+    const char *customer_name, *customer_address, *customer_citystatepostal, *customer_contact_name, *customer_contact_phone, *customer_contact_email;
     extern config_t nwipe_cfg;
 
     do
@@ -5132,6 +5415,7 @@ void nwipe_gui_preview_org_customer( int mode )
             mvwprintw( main_window, yy++, tab1, "  %s", "Business City, ST ZIP" );
             mvwprintw( main_window, yy++, tab1, "  %s", "Contact Name" );
             mvwprintw( main_window, yy++, tab1, "  %s", "Contact Phone" );
+            mvwprintw( main_window, yy++, tab1, "  %s", "Business Email" );
             mvwprintw( main_window, yy++, tab1, "  %s", "Tech/Operator" );
             yy++;
             mvwprintw( main_window, yy++, tab1, "  %s", "Customer Name" );
@@ -5139,6 +5423,7 @@ void nwipe_gui_preview_org_customer( int mode )
             mvwprintw( main_window, yy++, tab1, "  %s", "Customer City, ST ZIP" );
             mvwprintw( main_window, yy++, tab1, "  %s", "Customer Contact Name" );
             mvwprintw( main_window, yy++, tab1, "  %s", "Customer Contact Phone" );
+            mvwprintw( main_window, yy++, tab1, "  %s", "Customer Contact Email" );
             yy++;
             mvwprintw( main_window, yy++, tab1, "  %s", "System Date/Time" );
 
@@ -5212,15 +5497,28 @@ void nwipe_gui_preview_org_customer( int mode )
             }
 
             /* Retrieve data from nwipe.conf */
-            if( config_setting_lookup_string( setting, "Op_Tech_Name", &op_tech_name ) )
+            if( config_setting_lookup_string( setting, "Business_Email", &business_email ) )
             {
-                str_truncate( wcols, tab2, op_tech_name, output_str, FIELD_LENGTH );
+                str_truncate( wcols, tab2, business_email, output_str, FIELD_LENGTH );
                 mvwprintw( main_window, 7, tab2, ": %s", output_str );
             }
             else
             {
-                str_truncate( wcols, tab2, "Cannot retrieve op_tech_name, nwipe.conf", output_str, FIELD_LENGTH );
+                str_truncate(
+                    wcols, tab2, "Cannot retrieve business email, nwipe.conf", output_str, FIELD_LENGTH );
                 mvwprintw( main_window, 7, tab2, ": %s", output_str );
+            }
+
+            /* Retrieve data from nwipe.conf */
+            if( config_setting_lookup_string( setting, "Op_Tech_Name", &op_tech_name ) )
+            {
+                str_truncate( wcols, tab2, op_tech_name, output_str, FIELD_LENGTH );
+                mvwprintw( main_window, 8, tab2, ": %s", output_str );
+            }
+            else
+            {
+                str_truncate( wcols, tab2, "Cannot retrieve op_tech_name, nwipe.conf", output_str, FIELD_LENGTH );
+                mvwprintw( main_window, 8, tab2, ": %s", output_str );
             }
 
             /**********************************************************************
@@ -5232,67 +5530,79 @@ void nwipe_gui_preview_org_customer( int mode )
             if( config_setting_lookup_string( setting, "Customer_Name", &customer_name ) )
             {
                 str_truncate( wcols, tab2, customer_name, output_str, FIELD_LENGTH );
-                mvwprintw( main_window, 9, tab2, ": %s", output_str );
+                mvwprintw( main_window, 10, tab2, ": %s", output_str );
             }
             else
             {
                 str_truncate( wcols, tab2, "Cannot retrieve Customer_Name, nwipe.conf", output_str, FIELD_LENGTH );
-                mvwprintw( main_window, 9, tab2, ": %s", output_str );
+                mvwprintw( main_window, 10, tab2, ": %s", output_str );
             }
 
             /* Retrieve data from nwipe.conf */
             if( config_setting_lookup_string( setting, "Customer_Address", &customer_address ) )
             {
                 str_truncate( wcols, tab2, customer_address, output_str, FIELD_LENGTH );
-                mvwprintw( main_window, 10, tab2, ": %s", output_str );
+                mvwprintw( main_window, 11, tab2, ": %s", output_str );
             }
             else
             {
                 str_truncate( wcols, tab2, "Cannot retrieve customer address, nwipe.conf", output_str, FIELD_LENGTH );
-                mvwprintw( main_window, 10, tab2, ": %s", output_str );
+                mvwprintw( main_window, 11, tab2, ": %s", output_str );
             }
 
             /* Retrieve data from nwipe.conf */
             if( config_setting_lookup_string( setting, "Customer_CityStatePostal", &customer_citystatepostal ) )
             {
                 str_truncate( wcols, tab2, customer_citystatepostal, output_str, FIELD_LENGTH );
-                mvwprintw( main_window, 11, tab2, ": %s", output_str );
+                mvwprintw( main_window, 12, tab2, ": %s", output_str );
             }
             else
             {
                 str_truncate( wcols, tab2, "Cannot retrieve customer city state postal, nwipe.conf", output_str, FIELD_LENGTH );
-                mvwprintw( main_window, 11, tab2, ": %s", output_str );
+                mvwprintw( main_window, 12, tab2, ": %s", output_str );
             }
 
             /* Retrieve data from nwipe.conf */
             if( config_setting_lookup_string( setting, "Contact_Name", &customer_contact_name ) )
             {
                 str_truncate( wcols, tab2, customer_contact_name, output_str, FIELD_LENGTH );
-                mvwprintw( main_window, 12, tab2, ": %s", output_str );
+                mvwprintw( main_window, 13, tab2, ": %s", output_str );
             }
             else
             {
                 str_truncate( wcols, tab2, "Cannot retrieve customer contact name, nwipe.conf", output_str, FIELD_LENGTH );
-                mvwprintw( main_window, 12, tab2, ": %s", output_str );
+                mvwprintw( main_window, 13, tab2, ": %s", output_str );
             }
 
             /* Retrieve data from nwipe.conf */
-            if( config_setting_lookup_string( setting, "Contact_Phone", &contact_phone ) )
+            if( config_setting_lookup_string( setting, "Contact_Phone", &customer_contact_phone ) )
             {
-                str_truncate( wcols, tab2, contact_phone, output_str, FIELD_LENGTH );
-                mvwprintw( main_window, 13, tab2, ": %s", output_str );
+                str_truncate( wcols, tab2, customer_contact_phone, output_str, FIELD_LENGTH );
+                mvwprintw( main_window, 14, tab2, ": %s", output_str );
             }
             else
             {
                 str_truncate( wcols, tab2, "Cannot retrieve customer contact phone, nwipe.conf", output_str, FIELD_LENGTH );
-                mvwprintw( main_window, 13, tab2, ": %s", output_str );
+                mvwprintw( main_window, 14, tab2, ": %s", output_str );
+            }
+
+            /* Retrieve data from nwipe.conf */
+            if( config_setting_lookup_string( setting, "Contact_Email", &customer_contact_email ) )
+            {
+                str_truncate( wcols, tab2, customer_contact_email, output_str, FIELD_LENGTH );
+                mvwprintw( main_window, 15, tab2, ": %s", output_str );
+            }
+            else
+            {
+                str_truncate( wcols, tab2, "Cannot retrieve customer contact email, nwipe.conf", output_str, FIELD_LENGTH );
+                mvwprintw( main_window, 15, tab2, ": %s", output_str );
             }
 
             /*******************************
              * Retrieve system date and time
              */
             time( &t );
-            mvwprintw( main_window, 15, tab2, ": %s", ctime( &t ) );
+            mvwprintw( main_window, 17, tab2, ": %s", ctime( &t ) );
 
             /* ************
              * Add a border
@@ -5328,7 +5638,7 @@ void nwipe_gui_preview_org_customer( int mode )
 
                     if( focus < count - 1 )
                     {
-                        if( focus == 5 || focus == 11 )
+                        if( focus == 6 || focus == 13 )
                         {
                             focus += 2; /* mind the gaps */
                         }
@@ -5345,7 +5655,7 @@ void nwipe_gui_preview_org_customer( int mode )
 
                     if( focus > 0 )
                     {
-                        if( focus == 7 || focus == 13 )
+                        if( focus == 8 || focus == 15 )
                         {
                             focus -= 2; /* mind the gaps */
                         }
@@ -5404,19 +5714,25 @@ void nwipe_gui_preview_org_customer( int mode )
                     break;
 
                 case 5:
+                    nwipe_gui_organisation_business_email( business_email );
+                    keystroke = 0;
+                    break;
+
+                case 6:
                     nwipe_gui_organisation_op_tech_name( op_tech_name );
                     keystroke = 0;
                     break;
 
-                case 7:
                 case 8:
                 case 9:
                 case 10:
                 case 11:
+                case 12:
+                case 13:
                     nwipe_gui_config();
                     break;
 
-                case 13:
+                case 15:
                     nwipe_gui_set_date_time();
             }
         }
