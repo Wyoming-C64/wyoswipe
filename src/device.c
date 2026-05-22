@@ -24,6 +24,8 @@
 #define _DEFAULT_SOURCE
 #endif
 
+#include <errno.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -48,6 +50,7 @@
 #include <ctype.h>
 #include "hpa_dco.h"
 #include "miscellaneous.h"
+#include <unistd.h>
 
 #include <parted/parted.h>
 #include <parted/debug.h>
@@ -65,48 +68,204 @@ extern int terminate_signal;
 
 #define MAX_LINE 256
 
-// Get base device (e.g., from sda1 → sda)
-char *get_root_device(const char *partition_path) {
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 
-    char part_copy[PATH_MAX];
-    snprintf(part_copy, sizeof(part_copy), "%s", partition_path);
-    char *base = basename(part_copy);
+static int read_first_line(const char *cmd, char *buf, size_t buflen)
+{
+    FILE *fp = popen(cmd, "r");
+    if (!fp) {
+        return -1;
+    }
 
-    char sys_path[PATH_MAX];
-    char resolved[PATH_MAX];
+    if (!fgets(buf, buflen, fp)) {
+        pclose(fp);
+        return -1;
+    }
 
-    // Build sysfs path: /sys/class/block/sda1
-    snprintf(sys_path, sizeof(sys_path), "/sys/class/block/%s", base);
+    pclose(fp);
 
-    // Resolve symlink to parent block device
-    ssize_t len = readlink(sys_path, resolved, sizeof(resolved) - 1);
-    if (len == -1) {
-        nwipe_log( NWIPE_LOG_ERROR, "Could not get root device: readlink error" );
+    buf[strcspn(buf, "\r\n")] = '\0';
+    return 0;
+}
+
+/*
+ * Return the top-level kernel block device for a /dev node.
+ *
+ * Examples:
+ *   /dev/sda1        -> /dev/sda
+ *   /dev/nvme0n1p2   -> /dev/nvme0n1
+ *   /dev/mmcblk0p1   -> /dev/mmcblk0
+ *   /dev/mapper/foo  -> underlying slave disk, when available
+ *
+ * Caller must free().
+ */
+static char *get_parent_disk_from_devnode(const char *devnode)
+{
+    char realdev[PATH_MAX];
+    char base[PATH_MAX];
+    char sys_class[PATH_MAX];
+    char sys_real[PATH_MAX];
+
+    if (!devnode || strncmp(devnode, "/dev/", 5) != 0) {
         return NULL;
     }
 
-    resolved[len] = '\0';
+    if (!realpath(devnode, realdev)) {
+        nwipe_log(NWIPE_LOG_ERROR,
+                  "Could not resolve device path %s: %s",
+                  devnode,
+                  strerror(errno));
+        return NULL;
+    }
 
-    char *p = strstr(resolved, "/block/");
-    if (p) {
-        p += strlen("/block/");
-        char *slash = strchr(p, '/');
-        if (slash) *slash = '\0';
+    snprintf(base, sizeof(base), "%s", basename(realdev));
+    snprintf(sys_class, sizeof(sys_class), "/sys/class/block/%s", base);
 
-        // Allocate result string
-        char *result = malloc(strlen("/dev/") + strlen(p) + 1);
+    if (!realpath(sys_class, sys_real)) {
+        nwipe_log(NWIPE_LOG_ERROR,
+                  "Could not resolve sysfs path %s: %s",
+                  sys_class,
+                  strerror(errno));
+        return NULL;
+    }
+
+    /*
+     * Device-mapper, mdraid, loop, etc. may expose backing devices under
+     * /sys/class/block/<name>/slaves/. If present, use the first slave and
+     * resolve that to its parent disk.
+     */
+    {
+        char slaves_dir[PATH_MAX];
+        char slave_name[256];
+        char cmd[PATH_MAX + 64];
+
+        snprintf(slaves_dir, sizeof(slaves_dir), "%s/slaves", sys_class);
+        snprintf(cmd, sizeof(cmd), "ls -1 %s 2>/dev/null | head -n 1", slaves_dir);
+
+        if (read_first_line(cmd, slave_name, sizeof(slave_name)) == 0 &&
+            slave_name[0] != '\0') {
+            char slave_dev[PATH_MAX];
+
+            snprintf(slave_dev, sizeof(slave_dev), "/dev/%s", slave_name);
+            return get_parent_disk_from_devnode(slave_dev);
+        }
+    }
+
+    /*
+     * If this is a partition, sysfs has a "partition" file. The parent
+     * directory is the containing disk.
+     */
+    {
+        char partition_marker[PATH_MAX];
+
+        snprintf(partition_marker, sizeof(partition_marker), "%s/partition", sys_class);
+
+        if (access(partition_marker, F_OK) == 0) {
+            char parent_path[PATH_MAX];
+            char parent_real[PATH_MAX];
+            char *disk_name;
+
+            snprintf(parent_path, sizeof(parent_path), "%s/..", sys_real);
+
+            if (!realpath(parent_path, parent_real)) {
+                return NULL;
+            }
+
+            disk_name = basename(parent_real);
+
+            char *result = malloc(strlen("/dev/") + strlen(disk_name) + 1);
+            if (!result) {
+                return NULL;
+            }
+
+            sprintf(result, "/dev/%s", disk_name);
+            return result;
+        }
+    }
+
+    /*
+     * Already a whole block device.
+     */
+    {
+        char *result = malloc(strlen("/dev/") + strlen(base) + 1);
         if (!result) {
-            nwipe_log( NWIPE_LOG_ERROR, "Could not get root device: malloc error");
             return NULL;
         }
 
-        sprintf(result, "/dev/%s", p);
+        sprintf(result, "/dev/%s", base);
         return result;
     }
+}
 
-   // If all else fails...
-   return NULL;
+static char *get_root_mount_source(void)
+{
+    char source[PATH_MAX];
 
+    /*
+     * -n: no headings
+     * -o SOURCE: only source field
+     * -T /: filesystem containing /
+     */
+    if (read_first_line("findmnt -n -o SOURCE -T /", source, sizeof(source)) != 0) {
+        nwipe_log(NWIPE_LOG_ERROR, "Could not determine root mount source");
+        return NULL;
+    }
+
+    if (source[0] == '\0') {
+        return NULL;
+    }
+
+    return strdup(source);
+}
+
+static char *get_root_backing_disk(void)
+{
+    char *source = get_root_mount_source();
+    char *disk = NULL;
+
+    if (!source) {
+        return NULL;
+    }
+
+    /*
+     * Common live systems may report overlay, tmpfs, rootfs, etc.
+     * In that case, / is not directly enough. Try the device backing
+     * the running executable as a fallback.
+     */
+    if (strncmp(source, "/dev/", 5) == 0) {
+        disk = get_parent_disk_from_devnode(source);
+    } else {
+        char exe[PATH_MAX];
+        char exe_source_cmd[PATH_MAX * 2];
+        char exe_source[PATH_MAX];
+        ssize_t len;
+
+        nwipe_log(NWIPE_LOG_WARNING,
+                  "Root filesystem source is not a /dev node: %s",
+                  source);
+
+        len = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
+        if (len > 0) {
+            exe[len] = '\0';
+
+            snprintf(exe_source_cmd,
+                     sizeof(exe_source_cmd),
+                     "findmnt -n -o SOURCE -T '%s'",
+                     exe);
+
+            if (read_first_line(exe_source_cmd,
+                                exe_source,
+                                sizeof(exe_source)) == 0 &&
+                strncmp(exe_source, "/dev/", 5) == 0) {
+                disk = get_parent_disk_from_devnode(exe_source);
+            }
+        }
+    }
+
+    free(source);
+    return disk;
 }
 
 int nwipe_device_scan( nwipe_context_t*** c )
@@ -236,6 +395,9 @@ int check_device( nwipe_context_t*** c, PedDevice* dev, int dcount )
         }
     }
 
+
+
+    
     /* Check whether a device is the boot device. We do not want to
      * accidentally destroy this utility by wiping the drive, which
      * is likely running off a USB drive.
@@ -243,55 +405,48 @@ int check_device( nwipe_context_t*** c, PedDevice* dev, int dcount )
      * (Using --nousb prevents us from wiping additional external
      * drives that are *not* the boot drive...) */
 
-    FILE *fp;
-    char line[MAX_LINE];
-    char device[128] = {0};
-    char *root_device = NULL;
-    char *trash = NULL;
+    char *boot_disk = get_root_backing_disk();
     int is_boot = 0;
 
-    // Step 1: Run df /
-    fp = popen("df /", "r");
-    if (!fp) {
-        perror("popen");
-        return 1;
-    }
+    if (boot_disk) {
+        char dev_real[PATH_MAX];
+        char boot_real[PATH_MAX];
 
-    // Skip header
-    trash = fgets(line, sizeof(line), fp);
+        nwipe_log(NWIPE_LOG_INFO, "Boot/backing disk resolved as: %s", boot_disk);
 
-    // Read line with root device
-    if (fgets(line, sizeof(line), fp)) {
-        sscanf(line, "%127s", device);
-
-        root_device = get_root_device(device);
-        if (root_device) {
-            nwipe_log(NWIPE_LOG_INFO ,"Root device: %s\n", root_device);
-        } else {
-            nwipe_log(NWIPE_LOG_ERROR, "Failed to resolve root device\n");
+        if (realpath(dev->path, dev_real) && realpath(boot_disk, boot_real)) {
+            if (strcmp(dev_real, boot_real) == 0) {
+                is_boot = 1;
+            }
+        } else if (strcmp(dev->path, boot_disk) == 0) {
+            is_boot = 1;
         }
+
+        free(boot_disk);
     } else {
-        nwipe_log(NWIPE_LOG_ERROR, "Failed to read df output\n");
+        /*
+        * For a destructive utility, failing open is dangerous.
+        * At minimum, log this prominently. Prefer adding a config/CLI option
+        * that controls whether unresolved boot media causes all removable/USB
+        * candidates to be skipped.
+        */
+        nwipe_log(NWIPE_LOG_WARNING,
+                "Unable to resolve boot/backing disk; boot-device exclusion may be incomplete");
     }
-
-    // Check if the device is the df-reported root (often a partition...)
-    if (strcmp(device, dev->path) == 0) {
-        is_boot = 1;
-    }
-
-    if( root_device && strcmp(root_device, dev->path) == 0 ) {
-        is_boot = 1;
-    }
-
-    free(root_device);
-    pclose(fp);
 
     if (is_boot) {
-        nwipe_log( NWIPE_LOG_INFO, "Device excluded as boot device." );
+        nwipe_log(NWIPE_LOG_INFO,
+                "Device %s excluded as boot/backing device.",
+                dev->path);
         return 0;
     }
 
-    /* Try opening the device to see if it's valid. Close on completion. */
+    /* END OF BOOT DEVICE CHECK */
+
+
+
+
+     /* Try opening the device to see if it's valid. Close on completion. */
     if( !ped_device_open( dev ) )
     {
         nwipe_log( NWIPE_LOG_FATAL, "Unable to open device" );
