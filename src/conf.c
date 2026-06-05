@@ -37,12 +37,51 @@
 
 config_t nwipe_cfg;
 config_setting_t *nwipe_conf_setting, *group_organisation, *root, *group, *previous_group, *setting;
-const char* nwipe_conf_str;
+/*
 char nwipe_config_directory[] = "/etc/wyoswipe";
 char nwipe_config_file[] = "/etc/wyoswipe/wyoswipe.conf";
 char nwipe_customers_file[] = "/etc/wyoswipe/wyoswipe_customers.csv";
 char nwipe_customers_file_backup[] = "/etc/wyoswipe/wyoswipe_customers.csv.backup";
 char nwipe_customers_file_backup_tmp[] = "/etc/wyoswipe/wyoswipe_customers.csv.backup.tmp";
+*/
+
+char nwipe_config_directory[PATHNAME_MAX];
+char nwipe_config_file[PATHNAME_MAX];
+char nwipe_customers_file[PATHNAME_MAX];
+char nwipe_customers_file_backup[PATHNAME_MAX];
+char nwipe_customers_file_backup_tmp[PATHNAME_MAX];
+
+int using_persistent_storage = 0;
+
+static int path_exists(const char *path)
+{
+    struct stat st;
+    return stat(path, &st) == 0;
+}
+
+void nwipe_init_config_paths(void) 
+{
+    const char *base = NWIPE_FALLBACK_CONFIG_DIR;
+
+    if (path_exists( NWIPE_PERSISTENT_CONFIG_DIR )) {
+        base = NWIPE_PERSISTENT_CONFIG_DIR;
+        using_persistent_storage = 1;
+    } 
+
+    if ( using_persistent_storage ) {
+        nwipe_log( NWIPE_LOG_INFO, "Using persistent configuration storage: %s", nwipe_config_directory );
+    } else {
+        nwipe_log( NWIPE_LOG_WARNING, "Persistent storage unavailable, using temporary storage: %s", nwipe_config_directory );
+    }
+
+    snprintf( nwipe_config_directory, sizeof(nwipe_config_directory), "%s", base );
+    snprintf( nwipe_config_file, sizeof(nwipe_config_file), "%s/wyoswipe.conf", base );
+    snprintf( nwipe_customers_file, sizeof(nwipe_customers_file), "%s/wyoswipe_customers.csv", base );
+    snprintf( nwipe_customers_file_backup, sizeof(nwipe_customers_file_backup), "%s/wyoswipe_customers.csv.backup", base );
+    snprintf( nwipe_customers_file_backup_tmp, sizeof(nwipe_customers_file_backup_tmp), "%s/wyoswipe_customers.csv.backup.tmp", base );
+
+}
+
 
 /*
  * Checks for the existence of nwipe.conf and nwipe_customers.csv
@@ -52,6 +91,9 @@ char nwipe_customers_file_backup_tmp[] = "/etc/wyoswipe/wyoswipe_customers.csv.b
 
 int nwipe_conf_init()
 {
+    
+    nwipe_init_config_paths();
+
     FILE* fp_config;
     FILE* fp_customers;
 
@@ -86,8 +128,10 @@ int nwipe_conf_init()
     {
         nwipe_log( NWIPE_LOG_WARNING, "%s does not exist", nwipe_config_file );
 
-        /* We assume the /etc/nwipe directory doesn't exist, so try to create it */
-        mkdir( nwipe_config_directory, 0755 );
+        /* We check if the established config directory exists... if it doesn't, try to create it */
+        if ( !path_exists( nwipe_config_directory ) )  {
+            mkdir( nwipe_config_directory, 0755 );
+        }
 
         /* create the nwipe.conf file */
         if( !( fp_config = fopen( nwipe_config_file, "w" ) ) )

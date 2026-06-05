@@ -52,4 +52,18 @@ int nwipe_conf_populate( char* path, char* value );
 #define NUMBER_OF_FIELDS 6
 #define MAX_GROUP_DEPTH 4
 
+#define NWIPE_PERSISTENT_CONFIG_DIR "/mnt/wyos-store/config"
+#define NWIPE_FALLBACK_CONFIG_DIR "/etc/wyoswipe"
+#define NWIPE_PERSISTENT_REPORT_DIR "/mnt/wyos-store/reports"
+#define NWIPE_FALLBACK_REPORT_DIR "/tmp/wyoswipe-reports"
+#define PATHNAME_MAX 2048
+
+extern char nwipe_config_directory[PATHNAME_MAX];
+extern char nwipe_config_file[PATHNAME_MAX];
+extern char nwipe_customers_file[PATHNAME_MAX];
+extern char nwipe_customers_file_backup[PATHNAME_MAX];
+extern char nwipe_customers_file_backup_tmp[PATHNAME_MAX];
+
+extern int using_persistent_storage;
+
 #endif /* CONF_H_ */

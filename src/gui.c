@@ -3139,7 +3139,7 @@ void nwipe_gui_organisation_business_name( const char* business_name )
     config_setting_t* setting;
     // const char* business_name;
     extern config_t nwipe_cfg;
-    extern char nwipe_config_file[];
+    // extern char nwipe_config_file[PATHNAME_MAX];
 
     /* Update the footer window. */
     werase( footer_window );
@@ -3279,7 +3279,7 @@ void nwipe_gui_organisation_business_address( const char* business_address )
     config_setting_t* setting;
     // const char* business_name;
     extern config_t nwipe_cfg;
-    extern char nwipe_config_file[];
+    // extern char nwipe_config_file[];
 
     /* Update the footer window. */
     werase( footer_window );
@@ -3420,7 +3420,7 @@ void nwipe_gui_organisation_citystatepostal( const char* business_citystateposta
     config_setting_t* setting;
     // const char* business_name;
     extern config_t nwipe_cfg;
-    extern char nwipe_config_file[];
+    // extern char nwipe_config_file[];
 
     /* Update the footer window. */
     werase( footer_window );
@@ -3561,7 +3561,7 @@ void nwipe_gui_organisation_contact_name( const char* contact_name )
     config_setting_t* setting;
     // const char* business_name;
     extern config_t nwipe_cfg;
-    extern char nwipe_config_file[];
+    // extern char nwipe_config_file[];
 
     /* Update the footer window. */
     werase( footer_window );
@@ -3701,7 +3701,7 @@ void nwipe_gui_organisation_contact_phone( const char* contact_phone )
     config_setting_t* setting;
     // const char* contact_name;
     extern config_t nwipe_cfg;
-    extern char nwipe_config_file[];
+    // extern char nwipe_config_file[];
 
     /* Update the footer window. */
     werase( footer_window );
@@ -3842,7 +3842,7 @@ void nwipe_gui_organisation_business_email( const char* business_email )
     config_setting_t* setting;
     // const char* contact_name;
     extern config_t nwipe_cfg;
-    extern char nwipe_config_file[];
+    // extern char nwipe_config_file[];
 
     /* Update the footer window. */
     werase( footer_window );
@@ -3984,7 +3984,7 @@ void nwipe_gui_organisation_op_tech_name( const char* op_tech_name )
     config_setting_t* setting;
     // const char* contact_name;
     extern config_t nwipe_cfg;
-    extern char nwipe_config_file[];
+    // extern char nwipe_config_file[];
 
     /* Update the footer window. */
     werase( footer_window );
@@ -4721,7 +4721,7 @@ void nwipe_gui_add_customer_name( char* customer_name )
 
     // const char* contact_name;
     extern config_t nwipe_cfg;
-    extern char nwipe_config_file[];
+    // extern char nwipe_config_file[PATHNAME_MAX];
 
     /* Update the footer window. */
     werase( footer_window );
@@ -4828,7 +4828,7 @@ void nwipe_gui_add_customer_address( char* customer_address )
 
     // const char* contact_name;
     extern config_t nwipe_cfg;
-    extern char nwipe_config_file[];
+    // extern char nwipe_config_file[PATHNAME_MAX];
 
     /* Update the footer window. */
     werase( footer_window );
@@ -4935,7 +4935,7 @@ void nwipe_gui_add_customer_citystatepostal( char* customer_citystatepostal )
 
     // const char* contact_name;
     extern config_t nwipe_cfg;
-    extern char nwipe_config_file[];
+    // extern char nwipe_config_file[PATHNAME_MAX];
 
     /* Update the footer window. */
     werase( footer_window );
@@ -5042,7 +5042,7 @@ void nwipe_gui_add_customer_contact_name( char* customer_contact_name )
 
     // const char* contact_name;
     extern config_t nwipe_cfg;
-    extern char nwipe_config_file[];
+    // extern char nwipe_config_file[PATHNAME_MAX];
 
     /* Update the footer window. */
     werase( footer_window );
@@ -5149,7 +5149,7 @@ void nwipe_gui_add_customer_contact_phone( char* customer_contact_phone )
 
     // const char* contact_name;
     extern config_t nwipe_cfg;
-    extern char nwipe_config_file[];
+    // extern char nwipe_config_file[PATHNAME_MAX];
 
     /* Update the footer window. */
     werase( footer_window );
@@ -5258,7 +5258,7 @@ void nwipe_gui_add_customer_contact_email( char* customer_contact_email )
 
     // const char* contact_name;
     extern config_t nwipe_cfg;
-    extern char nwipe_config_file[];
+    // extern char nwipe_config_file[PATHNAME_MAX];
 
     /* Update the footer window. */
     werase( footer_window );

@@ -64,6 +64,33 @@ float height;
 float page_width;
 int status_icon;
 
+static char wyoswipe_report_directory[PATHNAME_MAX];
+
+static int path_exists(const char *path)
+{
+    struct stat st;
+    return stat(path, &st) == 0;
+}
+
+void wyoswipe_init_report_path(void) 
+{
+    const char *base = NWIPE_FALLBACK_REPORT_DIR;
+
+    if (path_exists( NWIPE_PERSISTENT_REPORT_DIR )) {
+        base = NWIPE_PERSISTENT_REPORT_DIR;
+        using_persistent_storage = 1;
+    } 
+
+    if ( using_persistent_storage ) {
+        nwipe_log( NWIPE_LOG_INFO, "Using persistent report storage: %s", wyoswipe_report_directory );
+    } else {
+        nwipe_log( NWIPE_LOG_WARNING, "Persistent report storage unavailable, using temporary storage: %s", wyoswipe_report_directory );
+    }
+
+    snprintf( wyoswipe_report_directory, sizeof(wyoswipe_report_directory), "%s", base );
+
+}
+
 int pica( float picas )
 {
     return picas * 12;
@@ -139,7 +166,7 @@ int create_pdf( nwipe_context_t* ptr )
 
     /* Used by libconfig functions to retrieve data from nwipe.conf defined in conf.c */
     extern config_t nwipe_cfg;
-    extern char nwipe_config_file[];
+    // extern char nwipe_config_file[PATHNAME_MAX];
 
     //    char pdf_footer[MAX_PDF_FOOTER_TEXT_LENGTH];
     nwipe_context_t* c;
@@ -930,15 +957,19 @@ int create_pdf( nwipe_context_t* ptr )
      * Create the reports filename
      *
      * Sanitize the strings that we are going to use to create the report filename
-     * by converting any non alphanumeric characters to an underscore or hyphon
+     * by converting any non alphanumeric characters to an underscore or hyphen
      */
     replace_non_alphanumeric( end_time_text, '-' );
     replace_non_alphanumeric( c->device_model, '_' );
     replace_non_alphanumeric( c->device_serial_no, '_' );
+
+    // Initialize and check our paths to determine actual destination.
+    wyoswipe_init_report_path();
+
     snprintf( c->PDF_filename,
               sizeof( c->PDF_filename ),
-              "%s/WyoSWipe-Report_%s_Model_%s_Serial_%s.pdf",
-              nwipe_options.PDFreportpath,
+              "%s/WyoSWipe-Report_Model-%s_Serial-%s_%s.pdf",
+              wyoswipe_report_directory,
               c->device_model,
               c->device_serial_no,
               end_time_text );
